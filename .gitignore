@@ -1,0 +1,26 @@
+# Build trees
+/build/
+/build-*/
+build/
+
+# CMake / compile artifacts
+*.o
+*.obj
+*.a
+compile_commands.json
+CMakeCache.txt
+CMakeFiles/
+
+# Dear ImGui runtime layout (machine-local)
+imgui.ini
+
+# Local screen captures at repo root (curated shots live in screenshots/)
+/screenshot.png
+/Screenshot at *.png
+
+# Editor / OS cruft
+*.swp
+*~
+.DS_Store
+.vscode/
+.idea/

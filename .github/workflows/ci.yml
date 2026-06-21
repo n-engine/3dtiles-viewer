@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  build:
+    name: build & test (${{ matrix.cc }}, http=${{ matrix.http }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+        http: [ON, OFF]
+        include:
+          - cc: gcc
+            cxx: g++
+          - cc: clang
+            cxx: clang++
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake pkg-config ninja-build \
+            libglfw3-dev libepoxy-dev libegl-dev libwayland-dev \
+            libcurl4-openssl-dev libwebp-dev
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: >
+          cmake -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DENABLE_HTTP_LOADER=${{ matrix.http }}
+          -DBUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pin the exact clang-format release: distro "clang-format" tracks the
+      # runner image and reformats lambdas/braces differently across majors,
+      # which silently breaks this gate on image bumps. pipx bundles the LLVM
+      # binary so CI and local contributors run byte-identical formatting.
+      - name: Install clang-format
+        run: pipx install clang-format==19.1.7
+      - name: Check formatting
+        run: |
+          files=$(find src tests -type f \( -name '*.cxx' -o -name '*.h' \))
+          clang-format --dry-run --Werror $files
